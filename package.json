@@ -1,0 +1,31 @@
+{
+  "name": "handelsregister-crawler",
+  "version": "1.0.0",
+  "description": "app that crawls handelsrergister entries",
+  "main": "handelsregister.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fabianszyman/handelsregister-crawler.git"
+  },
+  "keywords": [
+    "crawler",
+    "node",
+    "playwright",
+    "scrape",
+    "handelesregister"
+  ],
+  "author": "fabianszyman",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fabianszyman/handelsregister-crawler/issues"
+  },
+  "homepage": "https://github.com/fabianszyman/handelsregister-crawler#readme",
+  "dependencies": {
+    "inquirer": "^8.2.4",
+    "playwright": "^1.22.2",
+    "xlsx": "^0.18.5"
+  }
+}
