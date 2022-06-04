@@ -2,6 +2,7 @@
 const { chromium } = require('playwright');
 const xlsx = require('xlsx');
 var inquirer = require('inquirer');
+const nodeCron = require("node-cron");
 // Import relevant modules --End
 
 // Browser Config -- Start 
@@ -122,7 +123,7 @@ async function getLinks(){
     const context = await browser.newContext();
     const page = await context.newPage();
     // -- Chromium Setup -- END
-
+    
     // loop over Suchbegriffe 
     for(j=0; j < searchTerms.length; j++){
 
@@ -179,7 +180,7 @@ async function getLinks(){
 
 
 // Main Function starting Scraping Process --Start
-async function main(){
+async function scrapeDataFromHandelsregister(){
 
     var startingTimeUnix = new Date().getTime();
     var startingTime = convertUnixTimeStamp(startingTimeUnix);
@@ -218,18 +219,18 @@ async function fetchProfileData(searchTermUsed, IDToProfile, profileLink , bunde
     const context = await browser.newContext();
     const page = await context.newPage();
     // -- Chromium Setup -- END
-
+    
     await page.goto('https://www.handelsregisterbekanntmachungen.de/skripte/hrb.php?'+IDToProfile);
     const amtsgerichtInfo = await page.$eval('body > p > font > table > tbody > tr:nth-child(1) > td:nth-child(1) > nobr', u => u.textContent);
     const bekanntGemachtInfo = await page.$eval('body > p > font > table > tbody > tr:nth-child(1) > td:nth-child(2)', nobr => nobr.textContent);
     const dateOfEintragung = await page.$eval('body > p > font > table > tbody > tr:nth-child(4)', td => td.textContent);
     const detailsOfEintragung = await page.$eval('body > p > font > table > tbody > tr:nth-child(6)', td => td.textContent);
-
+    
     console.log('amtsgerichtInfo: '+ amtsgerichtInfo);
     console.log('bekanntGemachtInfo: '+ bekanntGemachtInfo);
     console.log('dateOfEintragung: '+ dateOfEintragung); 
     console.log('detailsOfEintragung: '+ detailsOfEintragung); 
-
+    
     await browser.close();
     
     return {
@@ -244,7 +245,13 @@ async function fetchProfileData(searchTermUsed, IDToProfile, profileLink , bunde
     }
 }
 
-main();
+// Run CronJob every 30 minutes -- START 
+const job = nodeCron.schedule("*/59 * * * *", function startCronjob() {
+    scrapeDataFromHandelsregister();
+    console.log('CronJob started at '+new Date().toLocaleString());
+});
+// Run CronJob every 30 minutes -- END
+
 // Main Function starting Scraping Process --End
 
 

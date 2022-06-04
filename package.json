@@ -25,6 +25,7 @@
   "homepage": "https://github.com/fabianszyman/handelsregister-crawler#readme",
   "dependencies": {
     "inquirer": "^8.2.4",
+    "node-cron": "^3.0.0",
     "playwright": "^1.22.2",
     "xlsx": "^0.18.5"
   }
