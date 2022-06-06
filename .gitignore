@@ -1,2 +1,5 @@
 # private files
 /exports
+credentials.json
+index.js
+env.json

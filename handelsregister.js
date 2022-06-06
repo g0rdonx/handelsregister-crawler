@@ -1,14 +1,19 @@
 // Import relevant modules --Start 
-const { chromium } = require('playwright');
+//const { chromium } = require('playwright');
+const { chromium } = require("playwright-chromium");
 const xlsx = require('xlsx');
 var inquirer = require('inquirer');
 const nodeCron = require("node-cron");
+const express = require('express');
+const {google} = require('googleapis');
 // Import relevant modules --End
+
+const spreadsheet_id = require('./env.js');
 
 // Browser Config -- Start 
 const chromeOptions = {
     executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    headless: false,
+    headless: true,
     slowMo: 20,
     defaultViewport: null
 };
@@ -119,9 +124,14 @@ var searchTermsUsed = [];
 async function getLinks(){
 
     // -- Chromium Setup -- START
-    const browser = await chromium.launch(chromeOptions);
-    const context = await browser.newContext();
-    const page = await context.newPage();
+    const browser = await chromium.launch({
+        headless:false,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+        ],
+      });
+    const page = await browser.newPage();
     // -- Chromium Setup -- END
     
     // loop over Suchbegriffe 
@@ -162,6 +172,9 @@ async function getLinks(){
                 profileLinkIDs.push(stringValue);
                 bundeslanderVisted.push(objectListOfBundeslander.bunderlander[k].name);
             }
+
+        // wait for random seconds between 1 - 4 seconds
+        await page.waitForTimeout(randomNumber(1000, 4000));
         }
     }
     // close Browser
@@ -192,21 +205,81 @@ async function scrapeDataFromHandelsregister(){
     const profileLinkIDs = objectWithUrlLinks.profileLinkIDs
     const bundeslanderVisted = objectWithUrlLinks.bundeslanderVisted
     const searchTermsUsed = objectWithUrlLinks.searchTermsUsed
-    
-    var scrapedData = [];
 
-    for (n=0; n < profileLinkIDs.length; n++){
-        var searchTermUsed = searchTermsUsed[n];
-        var profileLinkID = profileLinkIDs[n];
-        var profileLink = profileLinks[n];
-        var bundeslandVisted = bundeslanderVisted[n];
-        const fetchedData = await fetchProfileData(searchTermUsed, profileLinkID, profileLink, bundeslandVisted, n);
-        //console.log('TESTING fetchedData: '+ fetchedData.Amtsgericht_Info)
-        scrapedData.push(fetchedData);
+    // Authenticate with GoogleSpreadsheet
+    const auth = new google.auth.GoogleAuth({
+        keyFile: "credentials.json",
+        scopes: "https://www.googleapis.com/auth/spreadsheets",
+
+    });
+
+    // Create Client for instance for auth 
+    const client = await auth.getClient();
+
+    // Instance of Google Sheets API
+    const googleSheets = await google.sheets({version:"v4", auth: client});
+    const spreadsheetId = "1j5fo3ttGZCdmJQgR6TKAb4bFwajhOK8zMYEalNiJh2M";
+
+    // Get metadata about spreadsheet
+    const metaData = await googleSheets.spreadsheets.get({
+      auth,
+      spreadsheetId,
+    });
+
+    // Read rows from spreadsheet
+    const getRows = await googleSheets.spreadsheets.values.get({
+      auth,
+      spreadsheetId,
+      range: "handelregisterDaten!B:B",
+    });
+
+    var arrayOfamtsgerichtInfoFromGoogleSpreadsheet = getRows.data.values
+    var arrayOfGoogleTestingIDs = arrayOfamtsgerichtInfoFromGoogleSpreadsheet.flat();
+
+    console.log('arrayOfGoogleTestingIDs: '+ arrayOfGoogleTestingIDs);
+    console.log('profileLinkIDs: '+ profileLinkIDs);
+
+    var stopEntryAction = false;
+
+    // loop over array of newProfileIDs
+    for(n=0; n< profileLinkIDs.length; n++){
+        var currentProfileID = profileLinkIDs[n];
+
+        if (arrayOfGoogleTestingIDs.includes(currentProfileID)){
+            console.log('comparision true');
+
+        } else {
+            console.log('not true');
+            var scrapedData = [];
+            for (p=0; p < profileLinkIDs.length; p++){
+                var searchTermUsed = searchTermsUsed[p];
+                var profileLinkID = profileLinkIDs[p];
+                var profileLink = profileLinks[p];
+                var bundeslandVisted = bundeslanderVisted[p];
+                const fetchedData = await fetchProfileData(searchTermUsed, profileLinkID, profileLink, bundeslandVisted, p);
+
+                // Write row(s) to spreadsheet
+                await googleSheets.spreadsheets.values.append({
+                    auth,
+                    spreadsheetId,
+                    range: "handelregisterDaten",
+                    valueInputOption: "USER_ENTERED",
+                    resource: {
+                      values: [fetchedData],
+                    },
+                }); 
+                                    
+                //console.log('TESTING fetchedData: '+ fetchedData.Amtsgericht_Info)
+                scrapedData.push(fetchedData);
+            }
+
+        }
+
     }
-    
-    var ExcelName = "handelregister_"+startingTime+".xlsx"
-    await exportExcel(ExcelName,scrapedData);    
+
+
+    //var ExcelName = "handelregister_"+startingTime+".xlsx"
+    //await exportExcel(ExcelName,scrapedData);    
     var endingTimeUnix = new Date().getTime();
     var timeDuration = endingTimeUnix - startingTimeUnix;
     console.log("Scraping Handelsegister took " + millisToMinutesAndSeconds(timeDuration) + " minutes.")
@@ -215,9 +288,14 @@ async function scrapeDataFromHandelsregister(){
 async function fetchProfileData(searchTermUsed, IDToProfile, profileLink , bundeslandVisted,  roundOfIterations){
 
     // -- Chromium Setup -- START
-    const browser = await chromium.launch(chromeOptions);
-    const context = await browser.newContext();
-    const page = await context.newPage();
+    const browser = await chromium.launch({
+        headless:false,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+        ],
+      });
+    const page = await browser.newPage();
     // -- Chromium Setup -- END
     
     await page.goto('https://www.handelsregisterbekanntmachungen.de/skripte/hrb.php?'+IDToProfile);
@@ -230,27 +308,33 @@ async function fetchProfileData(searchTermUsed, IDToProfile, profileLink , bunde
     console.log('bekanntGemachtInfo: '+ bekanntGemachtInfo);
     console.log('dateOfEintragung: '+ dateOfEintragung); 
     console.log('detailsOfEintragung: '+ detailsOfEintragung); 
+
+    var arrayOfNewEntry = [searchTermUsed, IDToProfile, profileLink, bundeslandVisted, amtsgerichtInfo, bekanntGemachtInfo, dateOfEintragung, detailsOfEintragung];
     
     await browser.close();
+
+    return arrayOfNewEntry
     
-    return {
-        Suchbegriff: searchTermUsed,
-        ID_zum_Eintrag: IDToProfile,
-        URL_des_Eintrags: profileLink,
-        Bundesland: bundeslandVisted,
-        Amtsgericht_Info: amtsgerichtInfo,
-        Bekannt_Gemacht_Info: bekanntGemachtInfo,
-        Datum_der_Eintragung: dateOfEintragung,
-        Details_der_Eintragung: detailsOfEintragung
-    }
+    //return {
+    //    Suchbegriff: searchTermUsed,
+    //    ID_zum_Eintrag: IDToProfile,
+    //    URL_des_Eintrags: profileLink,
+    //    Bundesland: bundeslandVisted,
+    //    Amtsgericht_Info: amtsgerichtInfo,
+    //    Bekannt_Gemacht_Info: bekanntGemachtInfo,
+    //    Datum_der_Eintragung: dateOfEintragung,
+    //    Details_der_Eintragung: detailsOfEintragung
+    //}
 }
 
-// Run CronJob every 30 minutes -- START 
-const job = nodeCron.schedule("*/59 * * * *", function startCronjob() {
+// Run CronJob every hour “At minute 23.” -- START 
+const job = nodeCron.schedule("24 * * * *", function startCronjob() {
     scrapeDataFromHandelsregister();
     console.log('CronJob started at '+new Date().toLocaleString());
 });
-// Run CronJob every 30 minutes -- END
+
+//scrapeDataFromHandelsregister();
+// Run CronJob every hour “At minute 23.” -- END
 
 // Main Function starting Scraping Process --End
 
@@ -305,3 +389,16 @@ function convertUnixTimeStamp(unix_timestamp){
     return formattedTime
 }
 // Convert unixTimeStamp --End
+
+
+// function to wait for random amount of seconds --START
+function randomNumber(min, max){
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    const randomAmountOfSeconds = Math.floor(Math.random() * (max - min)) + min;
+    console.log('Random seconds waiting: '+randomAmountOfSeconds);
+    return randomAmountOfSeconds;
+}
+// function to wait for random amount of seconds --END
+
+
