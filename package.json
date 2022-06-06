@@ -4,6 +4,7 @@
   "description": "app that crawls handelsrergister entries",
   "main": "handelsregister.js",
   "scripts": {
+    "start": "node handelsregister.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
