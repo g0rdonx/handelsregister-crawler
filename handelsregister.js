@@ -17,7 +17,7 @@ const spreadsheet_id = require('./env.js');
 
 // Browser Config -- Start 
 const chromeOptions = {
-    executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    executablePath: '/usr/lib/playwright',
     headless: true,
     slowMo: 20,
     defaultViewport: null
@@ -132,7 +132,10 @@ async function getLinks(){
 
     // -- Chromium Setup -- START
     const browser = await chromium.launch({
-        headless:true,
+        executablePath: '/usr/lib/playwright',
+        headless: true,
+        slowMo: 20,
+        defaultViewport: null,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -299,7 +302,10 @@ async function fetchProfileData(searchTermUsed, IDToProfile, profileLink , bunde
 
     // -- Chromium Setup -- START
     const browser = await chromium.launch({
-        headless:true,
+        executablePath: '/usr/lib/playwright',
+        headless: true,
+        slowMo: 20,
+        defaultViewport: null,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
