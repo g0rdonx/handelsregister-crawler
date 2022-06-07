@@ -7,6 +7,10 @@
     "start": "node handelsregister.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "engines": { 
+    "node": "12.16.1", 
+    "npm": "6.14.4" 
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/fabianszyman/handelsregister-crawler.git"
