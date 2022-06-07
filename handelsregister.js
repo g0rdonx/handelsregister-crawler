@@ -125,20 +125,13 @@ var searchTermsUsed = [];
 // Defining Variables --- End
 
 
-app.get('/scrape', function (req, res) {
-    app.listen(process.env.PORT || 3000, '0.0.0.0', () => {
-        console.log("Server is running.");
-    })
-    res.send('Hello World!')
-})
-
 
 // Function to get all links to Profile Pages --Start
 async function getLinks(){
 
     // -- Chromium Setup -- START
     const browser = await chromium.launch({
-        headless:false,
+        headless:true,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -207,6 +200,12 @@ async function getLinks(){
 
 // Main Function starting Scraping Process --Start
 async function scrapeDataFromHandelsregister(){
+    app.get('/', function (req, res) {
+        app.listen(process.env.PORT || 3000, '0.0.0.0', () => {
+            console.log("Server is running.");
+        })
+        res.send('Hello World!')
+    })
 
     try{
         var startingTimeUnix = new Date().getTime();
