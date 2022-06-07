@@ -132,7 +132,7 @@ async function getLinks(){
 
     // -- Chromium Setup -- START
     const browser = await chromium.launch({
-        headless:false,
+        headless:true,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -299,7 +299,7 @@ async function fetchProfileData(searchTermUsed, IDToProfile, profileLink , bunde
 
     // -- Chromium Setup -- START
     const browser = await chromium.launch({
-        headless:false,
+        headless:true,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
