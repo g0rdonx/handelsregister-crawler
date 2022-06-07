@@ -1,10 +1,15 @@
 // Import relevant modules --Start 
-//const { chromium } = require('playwright');
-const { chromium } = require("playwright-chromium");
+const { chromium } = require('playwright');
+//const puppeteer = require("puppeteer");
 const xlsx = require('xlsx');
 var inquirer = require('inquirer');
 const nodeCron = require("node-cron");
 const express = require('express');
+const app = express();
+app.use(express.static('public'));
+app.use(express.json({limit: '1mb'}));
+
+
 const {google} = require('googleapis');
 // Import relevant modules --End
 
@@ -13,7 +18,7 @@ const spreadsheet_id = require('./env.js');
 // Browser Config -- Start 
 const chromeOptions = {
     executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    headless: false,
+    headless: true,
     slowMo: 20,
     defaultViewport: null
 };
@@ -120,6 +125,14 @@ var searchTermsUsed = [];
 // Defining Variables --- End
 
 
+app.get('/scrape', function (req, res) {
+    app.listen(process.env.PORT || 3000, '0.0.0.0', () => {
+        console.log("Server is running.");
+    })
+    res.send('Hello World!')
+})
+
+
 // Function to get all links to Profile Pages --Start
 async function getLinks(){
 
@@ -195,94 +208,98 @@ async function getLinks(){
 // Main Function starting Scraping Process --Start
 async function scrapeDataFromHandelsregister(){
 
-    var startingTimeUnix = new Date().getTime();
-    var startingTime = convertUnixTimeStamp(startingTimeUnix);
+    try{
+        var startingTimeUnix = new Date().getTime();
+        var startingTime = convertUnixTimeStamp(startingTimeUnix);
 
-    // fetch information from getLinks() function
-    const objectWithUrlLinks = await getLinks();
+        // fetch information from getLinks() function
+        const objectWithUrlLinks = await getLinks();
 
-    const profileLinks = objectWithUrlLinks.profileLinks
-    const profileLinkIDs = objectWithUrlLinks.profileLinkIDs
-    const bundeslanderVisted = objectWithUrlLinks.bundeslanderVisted
-    const searchTermsUsed = objectWithUrlLinks.searchTermsUsed
+        const profileLinks = objectWithUrlLinks.profileLinks
+        const profileLinkIDs = objectWithUrlLinks.profileLinkIDs
+        const bundeslanderVisted = objectWithUrlLinks.bundeslanderVisted
+        const searchTermsUsed = objectWithUrlLinks.searchTermsUsed
 
-    // Authenticate with GoogleSpreadsheet
-    const auth = new google.auth.GoogleAuth({
-        keyFile: "credentials.json",
-        scopes: "https://www.googleapis.com/auth/spreadsheets",
+        // Authenticate with GoogleSpreadsheet
+        const auth = new google.auth.GoogleAuth({
+            keyFile: "credentials.json",
+            scopes: "https://www.googleapis.com/auth/spreadsheets",
 
-    });
+        });
 
-    // Create Client for instance for auth 
-    const client = await auth.getClient();
+        // Create Client for instance for auth 
+        const client = await auth.getClient();
 
-    // Instance of Google Sheets API
-    const googleSheets = await google.sheets({version:"v4", auth: client});
-    const spreadsheetId = "1j5fo3ttGZCdmJQgR6TKAb4bFwajhOK8zMYEalNiJh2M";
+        // Instance of Google Sheets API
+        const googleSheets = await google.sheets({version:"v4", auth: client});
+        const spreadsheetId = "1j5fo3ttGZCdmJQgR6TKAb4bFwajhOK8zMYEalNiJh2M";
 
-    // Get metadata about spreadsheet
-    const metaData = await googleSheets.spreadsheets.get({
-      auth,
-      spreadsheetId,
-    });
+        // Get metadata about spreadsheet
+        const metaData = await googleSheets.spreadsheets.get({
+          auth,
+          spreadsheetId,
+        });
 
-    // Read rows from spreadsheet
-    const getRows = await googleSheets.spreadsheets.values.get({
-      auth,
-      spreadsheetId,
-      range: "handelregisterDaten!B:B",
-    });
+        // Read rows from spreadsheet
+        const getRows = await googleSheets.spreadsheets.values.get({
+          auth,
+          spreadsheetId,
+          range: "handelregisterDaten!B:B",
+        });
 
-    var arrayOfamtsgerichtInfoFromGoogleSpreadsheet = getRows.data.values
-    var arrayOfGoogleTestingIDs = arrayOfamtsgerichtInfoFromGoogleSpreadsheet.flat();
+        var arrayOfamtsgerichtInfoFromGoogleSpreadsheet = getRows.data.values
+        var arrayOfGoogleTestingIDs = arrayOfamtsgerichtInfoFromGoogleSpreadsheet.flat();
 
-    console.log('arrayOfGoogleTestingIDs: '+ arrayOfGoogleTestingIDs);
-    console.log('profileLinkIDs: '+ profileLinkIDs);
+        console.log('arrayOfGoogleTestingIDs: '+ arrayOfGoogleTestingIDs);
+        console.log('profileLinkIDs: '+ profileLinkIDs);
 
-    var stopEntryAction = false;
+        var stopEntryAction = false;
 
-    // loop over array of newProfileIDs
-    for(n=0; n< profileLinkIDs.length; n++){
-        var currentProfileID = profileLinkIDs[n];
+        // loop over array of newProfileIDs
+        for(n=0; n< profileLinkIDs.length; n++){
+            var currentProfileID = profileLinkIDs[n];
 
-        if (arrayOfGoogleTestingIDs.includes(currentProfileID)){
-            console.log('comparision true');
+            if (arrayOfGoogleTestingIDs.includes(currentProfileID)){
+                console.log('comparision true');
 
-        } else {
-            console.log('not true');
-            var scrapedData = [];
-            for (p=0; p < profileLinkIDs.length; p++){
-                var searchTermUsed = searchTermsUsed[p];
-                var profileLinkID = profileLinkIDs[p];
-                var profileLink = profileLinks[p];
-                var bundeslandVisted = bundeslanderVisted[p];
-                const fetchedData = await fetchProfileData(searchTermUsed, profileLinkID, profileLink, bundeslandVisted, p);
+            } else {
+                console.log('not true');
+                var scrapedData = [];
+                for (p=0; p < profileLinkIDs.length; p++){
+                    var searchTermUsed = searchTermsUsed[p];
+                    var profileLinkID = profileLinkIDs[p];
+                    var profileLink = profileLinks[p];
+                    var bundeslandVisted = bundeslanderVisted[p];
+                    const fetchedData = await fetchProfileData(searchTermUsed, profileLinkID, profileLink, bundeslandVisted, p);
 
-                // Write row(s) to spreadsheet
-                await googleSheets.spreadsheets.values.append({
-                    auth,
-                    spreadsheetId,
-                    range: "handelregisterDaten",
-                    valueInputOption: "USER_ENTERED",
-                    resource: {
-                      values: [fetchedData],
-                    },
-                }); 
-                                    
-                //console.log('TESTING fetchedData: '+ fetchedData.Amtsgericht_Info)
-                scrapedData.push(fetchedData);
+                    // Write row(s) to spreadsheet
+                    await googleSheets.spreadsheets.values.append({
+                        auth,
+                        spreadsheetId,
+                        range: "handelregisterDaten",
+                        valueInputOption: "USER_ENTERED",
+                        resource: {
+                          values: [fetchedData],
+                        },
+                    }); 
+
+                    //console.log('TESTING fetchedData: '+ fetchedData.Amtsgericht_Info)
+                    scrapedData.push(fetchedData);
+                }
+
             }
 
         }
 
+
+        //var ExcelName = "handelregister_"+startingTime+".xlsx"
+        //await exportExcel(ExcelName,scrapedData);    
+        var endingTimeUnix = new Date().getTime();
+        var timeDuration = endingTimeUnix - startingTimeUnix;
+        console.log("Scraping Handelsegister took " + millisToMinutesAndSeconds(timeDuration) + " minutes.")
+    } catch(err){
+        console.log('Error logged: '+ err);
     }
-
-
-    //var ExcelName = "handelregister_"+startingTime+".xlsx"
-    //await exportExcel(ExcelName,scrapedData);    
-    var endingTimeUnix = new Date().getTime();
-    var timeDuration = endingTimeUnix - startingTimeUnix;
-    console.log("Scraping Handelsegister took " + millisToMinutesAndSeconds(timeDuration) + " minutes.")
 }
 
 async function fetchProfileData(searchTermUsed, IDToProfile, profileLink , bundeslandVisted,  roundOfIterations){
