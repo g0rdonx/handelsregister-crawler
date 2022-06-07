@@ -24,6 +24,7 @@ const chromeOptions = {
 };
 // Browser Config -- End
 
+
 // Defining Variables --- Start
 const handelregisterSucheURL = 'https://www.handelsregisterbekanntmachungen.de/?aktion=suche';
 const dropDownSelectorLand = 'select[name="land"]';
@@ -131,7 +132,7 @@ async function getLinks(){
 
     // -- Chromium Setup -- START
     const browser = await chromium.launch({
-        headless:true,
+        headless:false,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
@@ -200,13 +201,6 @@ async function getLinks(){
 
 // Main Function starting Scraping Process --Start
 async function scrapeDataFromHandelsregister(){
-    app.get('/', function (req, res) {
-        app.listen(process.env.PORT || 3000, '0.0.0.0', () => {
-            console.log("Server is running.");
-        })
-        res.send('Hello World!')
-    })
-
     try{
         var startingTimeUnix = new Date().getTime();
         var startingTime = convertUnixTimeStamp(startingTimeUnix);
@@ -331,16 +325,6 @@ async function fetchProfileData(searchTermUsed, IDToProfile, profileLink , bunde
 
     return arrayOfNewEntry
     
-    //return {
-    //    Suchbegriff: searchTermUsed,
-    //    ID_zum_Eintrag: IDToProfile,
-    //    URL_des_Eintrags: profileLink,
-    //    Bundesland: bundeslandVisted,
-    //    Amtsgericht_Info: amtsgerichtInfo,
-    //    Bekannt_Gemacht_Info: bekanntGemachtInfo,
-    //    Datum_der_Eintragung: dateOfEintragung,
-    //    Details_der_Eintragung: detailsOfEintragung
-    //}
 }
 
 // Run CronJob every hour “At minute 23.” -- START 
@@ -349,7 +333,16 @@ async function fetchProfileData(searchTermUsed, IDToProfile, profileLink , bunde
 //    console.log('CronJob started at '+new Date().toLocaleString());
 //});
 
-scrapeDataFromHandelsregister();
+// express Settings
+app.get('/', function (req, res) {
+    res.send('Hello World!')
+    scrapeDataFromHandelsregister();
+})
+
+app.listen(process.env.PORT || 3000, '0.0.0.0', () => {
+    console.log("Server is running.");
+})
+
 // Run CronJob every hour “At minute 23.” -- END
 
 // Main Function starting Scraping Process --End
