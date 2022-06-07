@@ -13,7 +13,7 @@ const spreadsheet_id = require('./env.js');
 // Browser Config -- Start 
 const chromeOptions = {
     executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    headless: true,
+    headless: false,
     slowMo: 20,
     defaultViewport: null
 };
@@ -328,12 +328,12 @@ async function fetchProfileData(searchTermUsed, IDToProfile, profileLink , bunde
 }
 
 // Run CronJob every hour “At minute 23.” -- START 
-const job = nodeCron.schedule("24 * * * *", function startCronjob() {
-    scrapeDataFromHandelsregister();
-    console.log('CronJob started at '+new Date().toLocaleString());
-});
+//const job = nodeCron.schedule("24 * * * *", function startCronjob() {
+//    scrapeDataFromHandelsregister();
+//    console.log('CronJob started at '+new Date().toLocaleString());
+//});
 
-//scrapeDataFromHandelsregister();
+scrapeDataFromHandelsregister();
 // Run CronJob every hour “At minute 23.” -- END
 
 // Main Function starting Scraping Process --End
