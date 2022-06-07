@@ -203,7 +203,7 @@ async function getLinks(){
 async function scrapeDataFromHandelsregister(){
     try{
         var startingTimeUnix = new Date().getTime();
-        var startingTime = convertUnixTimeStamp(startingTimeUnix);
+        //var startingTime = convertUnixTimeStamp(startingTimeUnix);
 
         // fetch information from getLinks() function
         const objectWithUrlLinks = await getLinks();
@@ -388,7 +388,7 @@ function convertUnixTimeStamp(unix_timestamp){
     var month = dateObject.toLocaleString("en-US", {month: "numeric"}) // 12
     var year = dateObject.toLocaleString("en-US", {year: "numeric"}) // 2019
     var hourInclUhr = dateObject.toLocaleString("de-DE", {hour: "2-digit"}) // 10 AM
-    var hour = hourInclUhr.replaceAll(" Uhr", "");
+    var hour = hourInclUhr.toString().replaceAll(" Uhr", "");
     var minute = dateObject.toLocaleString("en-US", {minute: "numeric"}) // 30
     var second = dateObject.toLocaleString("en-US", {second: "numeric"}) // 15
     
