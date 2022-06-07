@@ -1,5 +1,5 @@
 // Import relevant modules --Start 
-const { chromium } = require('playwright');
+const { chromium } = require('playwright-chromium');
 //const puppeteer = require("puppeteer");
 const xlsx = require('xlsx');
 var inquirer = require('inquirer');
